@@ -1,0 +1,896 @@
+From a6ea380f71d0dfbffd1d1743714741191dc6bf99 Mon Sep 17 00:00:00 2001
+From: Stanislav Rybalko <118202142+rybalko61@users.noreply.github.com>
+Date: Mon, 16 Nov 2026 21:29:39 +0300
+Subject: [PATCH] Add Telegram cache sweep concept
+
+---
+ .../Sources/CacheSweepArtwork.swift           | 346 ++++++++++++++++++
+ .../Sources/CacheSweepGameView.swift          | 311 ++++++++++++++++
+ .../Sources/StorageUsageScreen.swift          | 134 ++++++-
+ 3 files changed, 783 insertions(+), 8 deletions(-)
+ create mode 100644 submodules/TelegramUI/Components/StorageUsageScreen/Sources/CacheSweepArtwork.swift
+ create mode 100644 submodules/TelegramUI/Components/StorageUsageScreen/Sources/CacheSweepGameView.swift
+
+diff --git a/submodules/TelegramUI/Components/StorageUsageScreen/Sources/CacheSweepArtwork.swift b/submodules/TelegramUI/Components/StorageUsageScreen/Sources/CacheSweepArtwork.swift
+new file mode 100644
+index 00000000..b7f407e6
+--- /dev/null
++++ b/submodules/TelegramUI/Components/StorageUsageScreen/Sources/CacheSweepArtwork.swift
+@@ -0,0 +1,346 @@
++import UIKit
++
++enum CacheSweepArtwork {
++    struct Shape {
++        let path: CGPath
++        let fill: UIColor?
++        let stroke: UIColor?
++        let width: CGFloat
++    }
++
++    private static func color(_ hex: UInt32) -> UIColor {
++        UIColor(red: CGFloat((hex >> 16) & 255) / 255, green: CGFloat((hex >> 8) & 255) / 255, blue: CGFloat(hex & 255) / 255, alpha: 1)
++    }
++
++    static let front: [Shape] = [
++        {
++            let path = CGMutablePath()
++            path.move(to: CGPoint(x: -25, y: 10))
++            path.addQuadCurve(to: CGPoint(x: -23, y: 29), control: CGPoint(x: -34, y: 23))
++            path.addQuadCurve(to: CGPoint(x: 24, y: 28), control: CGPoint(x: 0, y: 37))
++            path.addQuadCurve(to: CGPoint(x: 25, y: 9), control: CGPoint(x: 34, y: 23))
++            path.addCurve(to: CGPoint(x: 0, y: -33), control1: CGPoint(x: 37, y: -8), control2: CGPoint(x: 26, y: -33))
++            path.addCurve(to: CGPoint(x: -25, y: 10), control1: CGPoint(x: -26, y: -33), control2: CGPoint(x: -37, y: -8))
++            path.closeSubpath()
++            return Shape(path: path, fill: color(0xffdc19), stroke: color(0xf99412), width: 2.8)
++        }(),
++        {
++            let path = CGMutablePath()
++            path.move(to: CGPoint(x: -21, y: -17))
++            path.addQuadCurve(to: CGPoint(x: -8, y: -28), control: CGPoint(x: -18, y: -25))
++            return Shape(path: path, fill: nil, stroke: color(0xfff1a3), width: 2.8)
++        }(),
++        {
++            let path = CGMutablePath()
++            path.move(to: CGPoint(x: -16, y: -4))
++            path.addQuadCurve(to: CGPoint(x: -7, y: -4), control: CGPoint(x: -12, y: 2))
++            path.move(to: CGPoint(x: 7, y: -4))
++            path.addQuadCurve(to: CGPoint(x: 16, y: -5), control: CGPoint(x: 12, y: 2))
++            return Shape(path: path, fill: nil, stroke: color(0x261a14), width: 2.8)
++        }(),
++        {
++            let path = CGMutablePath()
++            path.move(to: CGPoint(x: -5, y: 7))
++            path.addQuadCurve(to: CGPoint(x: 5, y: 7), control: CGPoint(x: 0, y: -1))
++            path.addQuadCurve(to: CGPoint(x: 0, y: 13), control: CGPoint(x: 6, y: 13))
++            path.addQuadCurve(to: CGPoint(x: -5, y: 7), control: CGPoint(x: -6, y: 13))
++            path.closeSubpath()
++            return Shape(path: path, fill: color(0xff6533), stroke: color(0xdf4819), width: 2.8)
++        }(),
++    ]
++
++    static let back: [Shape] = [
++        {
++            let path = CGMutablePath()
++            path.move(to: CGPoint(x: -24, y: 9))
++            path.addCurve(to: CGPoint(x: -26, y: 30), control1: CGPoint(x: -28, y: 16), control2: CGPoint(x: -33, y: 24))
++            path.addCurve(to: CGPoint(x: 26, y: 30), control1: CGPoint(x: -17, y: 37), control2: CGPoint(x: 17, y: 37))
++            path.addCurve(to: CGPoint(x: 24, y: 9), control1: CGPoint(x: 33, y: 24), control2: CGPoint(x: 28, y: 16))
++            path.addCurve(to: CGPoint(x: 21, y: -24), control1: CGPoint(x: 32, y: 1), control2: CGPoint(x: 31, y: -14))
++            path.addCurve(to: CGPoint(x: -22, y: -24), control1: CGPoint(x: 10, y: -35), control2: CGPoint(x: -10, y: -35))
++            path.addCurve(to: CGPoint(x: -24, y: 9), control1: CGPoint(x: -32, y: -14), control2: CGPoint(x: -33, y: 1))
++            path.closeSubpath()
++            return Shape(path: path, fill: color(0xffda1b), stroke: color(0xf99412), width: 2.8)
++        }(),
++        {
++            let path = CGMutablePath()
++            path.move(to: CGPoint(x: -24, y: -12))
++            path.addCurve(to: CGPoint(x: -8, y: -27), control1: CGPoint(x: -21, y: -21), control2: CGPoint(x: -14, y: -26))
++            return Shape(path: path, fill: nil, stroke: color(0xfff5b4), width: 2)
++        }(),
++        {
++            let path = CGMutablePath()
++            path.move(to: CGPoint(x: -23, y: 16))
++            path.addQuadCurve(to: CGPoint(x: -14, y: 28), control: CGPoint(x: -25, y: 24))
++            path.move(to: CGPoint(x: 23, y: 16))
++            path.addQuadCurve(to: CGPoint(x: 14, y: 28), control: CGPoint(x: 25, y: 24))
++            return Shape(path: path, fill: nil, stroke: color(0xee9c13), width: 2.4)
++        }(),
++        {
++            let path = CGMutablePath()
++            path.move(to: CGPoint(x: -9, y: 27))
++            path.addQuadCurve(to: CGPoint(x: 0, y: 25), control: CGPoint(x: -6, y: 22))
++            path.addQuadCurve(to: CGPoint(x: 9, y: 27), control: CGPoint(x: 6, y: 22))
++            path.addQuadCurve(to: CGPoint(x: 0, y: 32), control: CGPoint(x: 8, y: 32))
++            path.addQuadCurve(to: CGPoint(x: -9, y: 27), control: CGPoint(x: -8, y: 32))
++            path.closeSubpath()
++            return Shape(path: path, fill: color(0xffde21), stroke: color(0xf6a41b), width: 2)
++        }(),
++    ]
++
++    static let side: [Shape] = [
++        {
++            let path = CGMutablePath()
++            path.move(to: CGPoint(x: -24, y: 8))
++            path.addCurve(to: CGPoint(x: -40, y: 15), control1: CGPoint(x: -28, y: 13), control2: CGPoint(x: -34, y: 17))
++            path.addCurve(to: CGPoint(x: -19, y: 33), control1: CGPoint(x: -41, y: 24), control2: CGPoint(x: -31, y: 32))
++            path.addCurve(to: CGPoint(x: 24, y: 27), control1: CGPoint(x: -4, y: 37), control2: CGPoint(x: 17, y: 34))
++            path.addCurve(to: CGPoint(x: 22, y: 11), control1: CGPoint(x: 29, y: 22), control2: CGPoint(x: 25, y: 15))
++            path.addCurve(to: CGPoint(x: 29, y: -9), control1: CGPoint(x: 29, y: 5), control2: CGPoint(x: 30, y: -2))
++            path.addCurve(to: CGPoint(x: 3, y: -32), control1: CGPoint(x: 27, y: -23), control2: CGPoint(x: 16, y: -32))
++            path.addCurve(to: CGPoint(x: -29, y: -5), control1: CGPoint(x: -14, y: -34), control2: CGPoint(x: -29, y: -20))
++            path.addCurve(to: CGPoint(x: -24, y: 8), control1: CGPoint(x: -29, y: 0), control2: CGPoint(x: -28, y: 5))
++            path.closeSubpath()
++            return Shape(path: path, fill: color(0xffda1b), stroke: color(0xf99412), width: 2.8)
++        }(),
++        {
++            let path = CGMutablePath()
++            path.move(to: CGPoint(x: 24, y: -5))
++            path.addCurve(to: CGPoint(x: 37, y: -1), control1: CGPoint(x: 29, y: -7), control2: CGPoint(x: 36, y: -5))
++            path.addCurve(to: CGPoint(x: 24, y: 8), control1: CGPoint(x: 38, y: 3), control2: CGPoint(x: 32, y: 7))
++            path.addCurve(to: CGPoint(x: 24, y: -5), control1: CGPoint(x: 21, y: 6), control2: CGPoint(x: 21, y: -1))
++            path.closeSubpath()
++            return Shape(path: path, fill: color(0xff722a), stroke: color(0xec4e19), width: 2.3)
++        }(),
++        {
++            let path = CGMutablePath()
++            path.move(to: CGPoint(x: 27, y: 2))
++            path.addQuadCurve(to: CGPoint(x: 36, y: 1), control: CGPoint(x: 33, y: 3))
++            return Shape(path: path, fill: nil, stroke: color(0xeb4f1b), width: 1.5)
++        }(),
++        {
++            let path = CGMutablePath()
++            path.move(to: CGPoint(x: 10, y: -6))
++            path.addQuadCurve(to: CGPoint(x: 18, y: -6), control: CGPoint(x: 14, y: -1))
++            return Shape(path: path, fill: nil, stroke: color(0x201710), width: 2.8)
++        }(),
++        {
++            let path = CGMutablePath()
++            path.move(to: CGPoint(x: -21, y: -15))
++            path.addQuadCurve(to: CGPoint(x: -6, y: -27), control: CGPoint(x: -16, y: -24))
++            return Shape(path: path, fill: nil, stroke: color(0xfff5b4), width: 2)
++        }(),
++        {
++            let path = CGMutablePath()
++            path.move(to: CGPoint(x: -14, y: 14))
++            path.addCurve(to: CGPoint(x: 7, y: 17), control1: CGPoint(x: -7, y: 10), control2: CGPoint(x: 3, y: 12))
++            path.addCurve(to: CGPoint(x: -16, y: 23), control1: CGPoint(x: 3, y: 26), control2: CGPoint(x: -10, y: 28))
++            return Shape(path: path, fill: color(0xffdc1c), stroke: color(0xf5a217), width: 2.2)
++        }(),
++        {
++            let path = CGMutablePath()
++            path.move(to: CGPoint(x: -9, y: 15))
++            path.addQuadCurve(to: CGPoint(x: -2, y: 16), control: CGPoint(x: -5, y: 14))
++            return Shape(path: path, fill: nil, stroke: color(0xfff39a), width: 1.6)
++        }(),
++    ]
++
++    static let broom: [Shape] = [
++        {
++            let path = CGMutablePath()
++            path.move(to: CGPoint(x: 0, y: 1))
++            path.addLine(to: CGPoint(x: 0, y: -32))
++            return Shape(path: path, fill: nil, stroke: color(0x864517), width: 6)
++        }(),
++        {
++            let path = CGMutablePath()
++            path.move(to: CGPoint(x: 0, y: 1))
++            path.addLine(to: CGPoint(x: 0, y: -32))
++            return Shape(path: path, fill: nil, stroke: color(0xc77b29), width: 2)
++        }(),
++        {
++            let path = CGMutablePath()
++            path.move(to: CGPoint(x: -3, y: -34))
++            path.addQuadCurve(to: CGPoint(x: -11, y: -47), control: CGPoint(x: -8, y: -37))
++            path.addQuadCurve(to: CGPoint(x: 11, y: -47), control: CGPoint(x: 0, y: -51))
++            path.addQuadCurve(to: CGPoint(x: 3, y: -34), control: CGPoint(x: 8, y: -37))
++            path.closeSubpath()
++            return Shape(path: path, fill: color(0xfff095), stroke: color(0xc2aa58), width: 2)
++        }(),
++        {
++            let path = CGMutablePath()
++            path.move(to: CGPoint(x: -5, y: -40))
++            path.addLine(to: CGPoint(x: -7, y: -47))
++            path.move(to: CGPoint(x: 0, y: -40))
++            path.addLine(to: CGPoint(x: 0, y: -48))
++            path.move(to: CGPoint(x: 5, y: -40))
++            path.addLine(to: CGPoint(x: 7, y: -47))
++            return Shape(path: path, fill: nil, stroke: color(0xb59a4b), width: 1.4)
++        }(),
++        {
++            let path = CGMutablePath()
++            path.addEllipse(in: CGRect(x: -6, y: -18, width: 12, height: 8))
++            return Shape(path: path, fill: color(0xffe345), stroke: color(0xf89417), width: 2)
++        }(),
++    ]
++
++    static let dust: [Shape] = [
++        {
++            let path = CGMutablePath()
++            path.move(to: CGPoint(x: 7, y: 24))
++            path.addCurve(to: CGPoint(x: 9, y: 17), control1: CGPoint(x: 3, y: 22), control2: CGPoint(x: 4, y: 18))
++            path.addCurve(to: CGPoint(x: 16, y: 13), control1: CGPoint(x: 9, y: 13), control2: CGPoint(x: 13, y: 11))
++            path.addCurve(to: CGPoint(x: 25, y: 16), control1: CGPoint(x: 19, y: 9), control2: CGPoint(x: 25, y: 11))
++            path.addCurve(to: CGPoint(x: 26, y: 24), control1: CGPoint(x: 30, y: 17), control2: CGPoint(x: 31, y: 22))
++            path.addCurve(to: CGPoint(x: 7, y: 24), control1: CGPoint(x: 21, y: 26), control2: CGPoint(x: 12, y: 26))
++            path.closeSubpath()
++            return Shape(path: path, fill: color(0xbec2ad), stroke: color(0x929780), width: 1.5)
++        }(),
++        {
++            let path = CGMutablePath()
++            path.move(to: CGPoint(x: 10, y: 18))
++            path.addQuadCurve(to: CGPoint(x: 16, y: 17), control: CGPoint(x: 13, y: 16))
++            return Shape(path: path, fill: nil, stroke: color(0xdce0cd), width: 1.5)
++        }(),
++    ]
++
++    static let paper: [Shape] = [
++        {
++            let path = CGMutablePath()
++            path.move(to: CGPoint(x: 5, y: 16))
++            path.addLine(to: CGPoint(x: 10, y: 12))
++            path.addLine(to: CGPoint(x: 11, y: 7))
++            path.addLine(to: CGPoint(x: 17, y: 9))
++            path.addLine(to: CGPoint(x: 22, y: 7))
++            path.addLine(to: CGPoint(x: 27, y: 13))
++            path.addLine(to: CGPoint(x: 26, y: 17))
++            path.addLine(to: CGPoint(x: 29, y: 23))
++            path.addLine(to: CGPoint(x: 21, y: 26))
++            path.addLine(to: CGPoint(x: 15, y: 25))
++            path.addLine(to: CGPoint(x: 10, y: 27))
++            path.addLine(to: CGPoint(x: 5, y: 21))
++            path.closeSubpath()
++            return Shape(path: path, fill: color(0xfff1d4), stroke: color(0xbaaa90), width: 1.5)
++        }(),
++        {
++            let path = CGMutablePath()
++            path.move(to: CGPoint(x: 10, y: 12))
++            path.addLine(to: CGPoint(x: 16, y: 15))
++            path.addLine(to: CGPoint(x: 17, y: 9))
++            path.move(to: CGPoint(x: 16, y: 15))
++            path.addLine(to: CGPoint(x: 13, y: 21))
++            path.addLine(to: CGPoint(x: 19, y: 24))
++            path.move(to: CGPoint(x: 16, y: 15))
++            path.addLine(to: CGPoint(x: 23, y: 18))
++            path.addLine(to: CGPoint(x: 26, y: 23))
++            path.move(to: CGPoint(x: 13, y: 21))
++            path.addLine(to: CGPoint(x: 6, y: 19))
++            return Shape(path: path, fill: nil, stroke: color(0xd4bfa1), width: 1.5)
++        }(),
++    ]
++
++    static let document: [Shape] = [
++        {
++            let path = CGMutablePath()
++            path.move(to: CGPoint(x: 8, y: 5))
++            path.addLine(to: CGPoint(x: 23, y: 7))
++            path.addLine(to: CGPoint(x: 27, y: 11))
++            path.addLine(to: CGPoint(x: 25, y: 27))
++            path.addLine(to: CGPoint(x: 22, y: 24))
++            path.addLine(to: CGPoint(x: 19, y: 27))
++            path.addLine(to: CGPoint(x: 16, y: 24))
++            path.addLine(to: CGPoint(x: 13, y: 26))
++            path.addLine(to: CGPoint(x: 10, y: 23))
++            path.addLine(to: CGPoint(x: 6, y: 25))
++            path.closeSubpath()
++            return Shape(path: path, fill: color(0xf3f7ff), stroke: color(0x91a4c0), width: 1.5)
++        }(),
++        {
++            let path = CGMutablePath()
++            path.move(to: CGPoint(x: 23, y: 7))
++            path.addLine(to: CGPoint(x: 22, y: 12))
++            path.addLine(to: CGPoint(x: 27, y: 11))
++            return Shape(path: path, fill: color(0xdce9ff), stroke: color(0x91a4c0), width: 1.5)
++        }(),
++        {
++            let path = CGMutablePath()
++            path.move(to: CGPoint(x: 11, y: 12))
++            path.addLine(to: CGPoint(x: 18, y: 13))
++            path.move(to: CGPoint(x: 10, y: 16))
++            path.addLine(to: CGPoint(x: 21, y: 18))
++            path.move(to: CGPoint(x: 9, y: 20))
++            path.addLine(to: CGPoint(x: 15, y: 21))
++            return Shape(path: path, fill: nil, stroke: color(0x9ab1d2), width: 1.5)
++        }(),
++    ]
++
++    static let clips: [Shape] = [
++        {
++            let path = CGMutablePath()
++            path.move(to: CGPoint(x: 11, y: 20))
++            path.addLine(to: CGPoint(x: 20, y: 9))
++            path.addCurve(to: CGPoint(x: 25, y: 13), control1: CGPoint(x: 24, y: 5), control2: CGPoint(x: 28, y: 9))
++            path.addLine(to: CGPoint(x: 16, y: 24))
++            path.addCurve(to: CGPoint(x: 10, y: 19), control1: CGPoint(x: 12, y: 29), control2: CGPoint(x: 6, y: 24))
++            path.addLine(to: CGPoint(x: 18, y: 9))
++            path.move(to: CGPoint(x: 13, y: 20))
++            path.addLine(to: CGPoint(x: 20, y: 12))
++            return Shape(path: path, fill: nil, stroke: color(0x8f82aa), width: 2.4)
++        }(),
++        {
++            let path = CGMutablePath()
++            path.move(to: CGPoint(x: 6, y: 15))
++            path.addLine(to: CGPoint(x: 11, y: 9))
++            path.addCurve(to: CGPoint(x: 14, y: 11), control1: CGPoint(x: 13, y: 7), control2: CGPoint(x: 16, y: 9))
++            path.addLine(to: CGPoint(x: 9, y: 17))
++            path.addCurve(to: CGPoint(x: 5, y: 15), control1: CGPoint(x: 7, y: 20), control2: CGPoint(x: 3, y: 18))
++            path.addLine(to: CGPoint(x: 9, y: 10))
++            return Shape(path: path, fill: nil, stroke: color(0xa4b5cc), width: 1.8)
++        }(),
++    ]
++
++    private static func litterShape(_ points: [CGPoint], fill: UInt32?, stroke: UInt32) -> Shape {
++        let path = CGMutablePath()
++        if let first = points.first {
++            path.move(to: first)
++            for point in points.dropFirst() { path.addLine(to: point) }
++            if fill != nil { path.closeSubpath() }
++        }
++        return Shape(path: path, fill: fill.map(color), stroke: color(stroke), width: 1.5)
++    }
++
++    static let photo = [
++        litterShape([.init(x: 5, y: 6), .init(x: 27, y: 5), .init(x: 28, y: 24), .init(x: 6, y: 26)], fill: 0xe3efff, stroke: 0x92abc5),
++        litterShape([.init(x: 8, y: 21), .init(x: 13, y: 14), .init(x: 17, y: 18), .init(x: 22, y: 11), .init(x: 25, y: 20)], fill: 0xb9d7c8, stroke: 0x8dae9d)
++    ]
++
++    static let wrapper = [
++        litterShape([.init(x: 4, y: 10), .init(x: 12, y: 12), .init(x: 21, y: 9), .init(x: 28, y: 7), .init(x: 26, y: 15), .init(x: 29, y: 22), .init(x: 21, y: 20), .init(x: 12, y: 23), .init(x: 5, y: 26), .init(x: 7, y: 18)], fill: 0xffddc9, stroke: 0xc38d83),
++        litterShape([.init(x: 12, y: 12), .init(x: 11, y: 17), .init(x: 12, y: 23)], fill: nil, stroke: 0xc38d83),
++        litterShape([.init(x: 21, y: 9), .init(x: 22, y: 15), .init(x: 21, y: 20)], fill: nil, stroke: 0xc38d83)
++    ]
++
++    static let ticket = [
++        litterShape([.init(x: 4, y: 11), .init(x: 27, y: 7), .init(x: 28, y: 12), .init(x: 25, y: 15), .init(x: 29, y: 17), .init(x: 29, y: 21), .init(x: 7, y: 25), .init(x: 6, y: 21), .init(x: 8, y: 17), .init(x: 5, y: 15)], fill: 0xfce8ae, stroke: 0xb5a168),
++        litterShape([.init(x: 13, y: 15), .init(x: 22, y: 13)], fill: nil, stroke: 0xb5a168),
++        litterShape([.init(x: 14, y: 19), .init(x: 20, y: 18)], fill: nil, stroke: 0xb5a168)
++    ]
++
++    static func draw(_ shapes: [Shape], in context: CGContext) {
++        context.setLineCap(.round)
++        context.setLineJoin(.round)
++        for shape in shapes {
++            if let fill = shape.fill {
++                context.setFillColor(fill.cgColor)
++                context.addPath(shape.path)
++                context.fillPath()
++            }
++            if let stroke = shape.stroke {
++                context.setStrokeColor(stroke.cgColor)
++                context.setLineWidth(shape.width)
++                context.addPath(shape.path)
++                context.strokePath()
++            }
++        }
++    }
++}
+diff --git a/submodules/TelegramUI/Components/StorageUsageScreen/Sources/CacheSweepGameView.swift b/submodules/TelegramUI/Components/StorageUsageScreen/Sources/CacheSweepGameView.swift
+new file mode 100644
+index 00000000..686b9214
+--- /dev/null
++++ b/submodules/TelegramUI/Components/StorageUsageScreen/Sources/CacheSweepGameView.swift
+@@ -0,0 +1,311 @@
++import UIKit
++
++final class CacheSweepGameView: UIView {
++    private struct Litter {
++        let position: CGPoint
++        let kind: Kind
++        let view: UIView
++    }
++
++    private enum Kind: Int, CaseIterable {
++        case dust, paper, document, clips, photo, wrapper, ticket
++
++        var artwork: [CacheSweepArtwork.Shape] {
++            switch self {
++            case .dust: return CacheSweepArtwork.dust
++            case .paper: return CacheSweepArtwork.paper
++            case .document: return CacheSweepArtwork.document
++            case .clips: return CacheSweepArtwork.clips
++            case .photo: return CacheSweepArtwork.photo
++            case .wrapper: return CacheSweepArtwork.wrapper
++            case .ticket: return CacheSweepArtwork.ticket
++            }
++        }
++
++        var particleColor: UIColor {
++            switch self {
++            case .dust: return UIColor(red: 0.59, green: 0.61, blue: 0.52, alpha: 1)
++            case .paper, .ticket: return UIColor(red: 0.72, green: 0.66, blue: 0.58, alpha: 1)
++            case .document, .photo: return UIColor(red: 0.57, green: 0.64, blue: 0.74, alpha: 1)
++            case .wrapper: return UIColor(red: 0.76, green: 0.55, blue: 0.51, alpha: 1)
++            case .clips: return UIColor(red: 0.66, green: 0.63, blue: 0.73, alpha: 1)
++            }
++        }
++    }
++
++    private enum Pose {
++        case front, back, left, right
++
++        var artwork: [CacheSweepArtwork.Shape] {
++            switch self {
++            case .front: return CacheSweepArtwork.front
++            case .back: return CacheSweepArtwork.back
++            case .left, .right: return CacheSweepArtwork.side
++            }
++        }
++    }
++
++    private let artworkView = ArtworkView()
++    private var spawnTimer: Timer?
++    private var litter: [Litter] = []
++    private var pendingLitter = 0
++    private var lastSpawnPosition: CGPoint?
++    private var kindOffset = Int.random(in: 0 ..< Kind.allCases.count)
++    private var position: CGPoint?
++    private var pose = Pose.front
++    private var angle = CGFloat.pi
++    private var travel: CGFloat = 0
++    private var previousTip: CGPoint?
++    private var dragOffset: CGPoint?
++    private var progressTop: CGFloat = 0
++
++    private var field: CGRect {
++        let bottom = min(bounds.height, progressTop - 14.0)
++        let top = min(bottom, max(86.0, safeAreaInsets.top + 42.0))
++        return CGRect(x: 0, y: top, width: bounds.width, height: max(0, bottom - top))
++    }
++
++    override init(frame: CGRect) {
++        super.init(frame: frame)
++        artworkView.paint = { [weak self] context in self?.paint(in: context) }
++        artworkView.isOpaque = false
++        artworkView.isUserInteractionEnabled = false
++        addSubview(artworkView)
++
++        let pan = UIPanGestureRecognizer(target: self, action: #selector(drag(_:)))
++        pan.delegate = self
++        addGestureRecognizer(pan)
++    }
++
++    required init?(coder: NSCoder) {
++        nil
++    }
++
++    deinit {
++        spawnTimer?.invalidate()
++    }
++
++    override func layoutSubviews() {
++        super.layoutSubviews()
++        artworkView.frame = bounds
++    }
++
++    func update(progressTop: CGFloat) {
++        self.progressTop = progressTop
++        if let position {
++            let next = contained(position)
++            if next != position {
++                self.position = next
++                previousTip = bristles(at: next, angle: visibleAngle)
++            }
++            litter.removeAll { item in
++                guard !field.insetBy(dx: 12, dy: 12).contains(item.position) else { return false }
++                item.view.removeFromSuperview()
++                return true
++            }
++            artworkView.setNeedsDisplay()
++        }
++    }
++
++    @discardableResult
++    func begin(at origin: CGPoint) -> CGPoint {
++        let start = contained(origin)
++        position = start
++        previousTip = bristles(at: start, angle: visibleAngle)
++        pendingLitter = 8
++        spawn()
++        spawnTimer = Timer(timeInterval: 0.24, repeats: true) { [weak self] _ in
++            guard let self else { return }
++            if self.pendingLitter == 0, self.litter.count <= 3 {
++                self.pendingLitter = Int.random(in: 5 ... 7)
++            }
++            guard self.pendingLitter > 0 else { return }
++            self.pendingLitter -= 1
++            self.spawn()
++        }
++        if let spawnTimer { RunLoop.main.add(spawnTimer, forMode: .common) }
++        artworkView.setNeedsDisplay()
++        return start
++    }
++
++    func stop() {
++        spawnTimer?.invalidate()
++        spawnTimer = nil
++        isUserInteractionEnabled = false
++    }
++
++    private var visibleAngle: CGFloat {
++        angle + (UIAccessibility.isReduceMotionEnabled ? 0 : sin(travel * 0.16) * 0.22)
++    }
++
++    private func contained(_ point: CGPoint) -> CGPoint {
++        let dx = min(51.0, field.width / 2)
++        let dy = min(51.0, field.height / 2)
++        return CGPoint(x: min(max(point.x, field.minX + dx), field.maxX - dx), y: min(max(point.y, field.minY + dy), field.maxY - dy))
++    }
++
++    private func spawn() {
++        guard let position, litter.count < 12, field.width > 40, field.height > 40 else { return }
++        for _ in 0 ..< 22 {
++            let point = CGPoint(x: .random(in: field.minX + 18 ... field.maxX - 18), y: .random(in: field.minY + 19 ... field.maxY - 19))
++            guard hypot(point.x - position.x, point.y - position.y) >= 62,
++                  litter.allSatisfy({ hypot(point.x - $0.position.x, point.y - $0.position.y) >= 31 }) else { continue }
++            if let lastSpawnPosition, hypot(point.x - lastSpawnPosition.x, point.y - lastSpawnPosition.y) < 75 { continue }
++            let kind = Kind.allCases[kindOffset % Kind.allCases.count]
++            kindOffset += 1
++            let itemView = ArtworkView(frame: CGRect(x: point.x - 20, y: point.y - 20, width: 40, height: 40))
++            itemView.isOpaque = false
++            itemView.isUserInteractionEnabled = false
++            itemView.paint = { context in
++                context.scaleBy(x: 1.22, y: 1.22)
++                CacheSweepArtwork.draw(kind.artwork, in: context)
++            }
++            let rotation = CGAffineTransform(rotationAngle: .random(in: -0.3 ... 0.3))
++            itemView.transform = rotation
++            insertSubview(itemView, belowSubview: artworkView)
++            litter.append(Litter(position: point, kind: kind, view: itemView))
++            lastSpawnPosition = point
++            if !UIAccessibility.isReduceMotionEnabled {
++                itemView.alpha = 0
++                itemView.transform = rotation.scaledBy(x: 0.72, y: 0.72)
++                UIView.animate(withDuration: 0.25, delay: 0, options: .curveEaseOut) {
++                    itemView.alpha = 1
++                    itemView.transform = rotation
++                }
++            }
++            return
++        }
++    }
++
++    @objc private func drag(_ gesture: UIPanGestureRecognizer) {
++        guard let position else { return }
++        let point = gesture.location(in: self)
++        switch gesture.state {
++        case .began:
++            let translation = gesture.translation(in: self)
++            dragOffset = CGPoint(x: point.x - translation.x - position.x, y: point.y - translation.y - position.y)
++            fallthrough
++        case .changed, .ended:
++            if let dragOffset {
++                move(to: contained(CGPoint(x: point.x - dragOffset.x, y: point.y - dragOffset.y)))
++            }
++            if gesture.state == .ended { dragOffset = nil }
++        default:
++            dragOffset = nil
++        }
++    }
++
++    private func move(to target: CGPoint) {
++        guard let origin = position else { return }
++        let dx = target.x - origin.x
++        let dy = target.y - origin.y
++        let distance = hypot(dx, dy)
++        guard distance >= 0.5 else { return }
++
++        let direction = atan2(dx, -dy)
++        let turn = atan2(sin(direction - angle), cos(direction - angle))
++        let steps = max(1, Int(ceil(distance / 10)), Int(ceil(abs(turn) / 0.28)))
++        let startAngle = angle
++        let startTravel = travel
++        for step in 1 ... steps {
++            let fraction = CGFloat(step) / CGFloat(steps)
++            let next = CGPoint(x: origin.x + dx * fraction, y: origin.y + dy * fraction)
++            angle = startAngle + turn * fraction
++            travel = startTravel + distance * fraction
++            let tip = bristles(at: next, angle: visibleAngle)
++            if let previousTip { sweep(from: previousTip, to: tip) }
++            previousTip = tip
++        }
++        position = target
++        let horizontal = sin(direction)
++        let vertical = cos(direction)
++        if abs(horizontal) > 0.82 {
++            pose = horizontal < 0 ? .left : .right
++        } else if abs(vertical) > 0.82 {
++            pose = vertical > 0 ? .back : .front
++        }
++        artworkView.setNeedsDisplay()
++    }
++
++    private func bristles(at point: CGPoint, angle: CGFloat) -> CGPoint {
++        CGPoint(x: point.x + 47 * sin(angle), y: point.y - 47 * cos(angle))
++    }
++
++    private func sweep(from: CGPoint, to: CGPoint) {
++        let dx = to.x - from.x
++        let dy = to.y - from.y
++        let squaredDistance = dx * dx + dy * dy
++        var collected: [Litter] = []
++        litter.removeAll { item in
++            let x = item.position.x - from.x
++            let y = item.position.y - from.y
++            let t = squaredDistance > 0 ? min(1, max(0, (x * dx + y * dy) / squaredDistance)) : 0
++            guard hypot(x - t * dx, y - t * dy) <= 19 else { return false }
++            item.view.removeFromSuperview()
++            collected.append(item)
++            return true
++        }
++        for item in collected where !UIAccessibility.isReduceMotionEnabled {
++            scatter(item, direction: CGPoint(x: dx, y: dy))
++        }
++    }
++
++    private func scatter(_ item: Litter, direction: CGPoint) {
++        let distance = max(1, hypot(direction.x, direction.y))
++        for index in 0 ..< 11 {
++            let size = CGFloat(4 + index % 4)
++            let particle = UIView(frame: CGRect(x: item.position.x - size / 2, y: item.position.y - size / 2, width: size, height: size))
++            particle.backgroundColor = item.kind.particleColor
++            particle.layer.cornerRadius = size / 2
++            particle.isUserInteractionEnabled = false
++            addSubview(particle)
++            let angle = CGFloat(index) * 2.4
++            let radius = CGFloat(16 + index * 4)
++            let x = direction.x / distance * 16 + cos(angle) * radius
++            let y = direction.y / distance * 16 + sin(angle) * radius
++            UIView.animate(withDuration: 0.48, delay: 0, options: .curveEaseOut, animations: {
++                particle.transform = CGAffineTransform(translationX: x, y: y).scaledBy(x: 0.5, y: 0.5)
++                particle.alpha = 0
++            }, completion: { _ in particle.removeFromSuperview() })
++        }
++    }
++
++    private func paint(in context: CGContext) {
++        guard let position else { return }
++        context.saveGState()
++        context.translateBy(x: position.x, y: position.y)
++        context.setFillColor(UIColor.black.withAlphaComponent(0.09).cgColor)
++        context.fillEllipse(in: CGRect(x: -30, y: 25, width: 60, height: 12))
++        if pose == .back {
++            context.saveGState()
++            context.rotate(by: visibleAngle)
++            CacheSweepArtwork.draw(CacheSweepArtwork.broom, in: context)
++            context.restoreGState()
++        }
++        context.saveGState()
++        if pose == .left { context.scaleBy(x: -1, y: 1) }
++        CacheSweepArtwork.draw(pose.artwork, in: context)
++        context.restoreGState()
++        if pose != .back {
++            context.rotate(by: visibleAngle)
++            CacheSweepArtwork.draw(CacheSweepArtwork.broom, in: context)
++        }
++        context.restoreGState()
++    }
++
++    private final class ArtworkView: UIView {
++        var paint: ((CGContext) -> Void)?
++
++        override func draw(_ rect: CGRect) {
++            if let context = UIGraphicsGetCurrentContext() { paint?(context) }
++        }
++    }
++}
++
++extension CacheSweepGameView: UIGestureRecognizerDelegate {
++    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
++        guard let position else { return false }
++        let point = touch.location(in: self)
++        return hypot(point.x - position.x, point.y - position.y) < 52
++    }
++}
+diff --git a/submodules/TelegramUI/Components/StorageUsageScreen/Sources/StorageUsageScreen.swift b/submodules/TelegramUI/Components/StorageUsageScreen/Sources/StorageUsageScreen.swift
+index e22f4122..7bdea060 100644
+--- a/submodules/TelegramUI/Components/StorageUsageScreen/Sources/StorageUsageScreen.swift
++++ b/submodules/TelegramUI/Components/StorageUsageScreen/Sources/StorageUsageScreen.swift
+@@ -732,6 +732,35 @@ final class StorageUsageScreenComponent: Component {
+         private var currentSelectedPanelId: AnyHashable?
+         
+         private var clearingDisplayTimestamp: Double?
++        #if targetEnvironment(simulator)
++        private var duckDemoStartedAt: CFTimeInterval?
++        private var duckDemoDidFinish = false
++        private var duckDemoTimer: Foundation.Timer?
++
++        private func startDuckDemo() {
++            guard self.duckDemoStartedAt == nil, !self.isClearing else { return }
++            self.duckDemoStartedAt = CACurrentMediaTime()
++            self.state?.updated(transition: .immediate)
++            let timer = Foundation.Timer(timeInterval: 0.1, repeats: true) { [weak self] timer in
++                guard let self, let start = self.duckDemoStartedAt else {
++                    timer.invalidate()
++                    return
++                }
++                let progress = (CACurrentMediaTime() - start) / 12.0
++                if progress >= 1.0 {
++                    timer.invalidate()
++                    self.duckDemoTimer = nil
++                    self.duckDemoStartedAt = nil
++                    self.duckDemoDidFinish = true
++                    self.state?.updated(transition: ComponentTransition(animation: .none).withUserData(AnimationHint(value: .clearedItems)))
++                } else {
++                    self.updateClearProgress(progress: Float(progress))
++                }
++            }
++            self.duckDemoTimer = timer
++            RunLoop.main.add(timer, forMode: .common)
++        }
++        #endif
+         private var isClearing: Bool = false {
+             didSet {
+                 if self.isClearing != oldValue {
+@@ -1381,6 +1410,11 @@ final class StorageUsageScreenComponent: Component {
+                 }
+             }
+             
++            #if targetEnvironment(simulator)
++            if self.duckDemoDidFinish {
++                listCategories.removeAll()
++            }
++            #endif
+             self.chartHasData = !listCategories.isEmpty
+             listCategories.sort(by: { $0.size > $1.size })
+             
+@@ -2215,6 +2249,11 @@ final class StorageUsageScreenComponent: Component {
+                 ))
+             }
+             
++            #if targetEnvironment(simulator)
++            if self.duckDemoDidFinish {
++                panelItems.removeAll()
++            }
++            #endif
+             if !panelItems.isEmpty {
+                 let panelContainerSize = self.panelContainer.update(
+                     transition: transition,
+@@ -2280,7 +2319,13 @@ final class StorageUsageScreenComponent: Component {
+             
+             self.updateScrolling(transition: transition)
+             
+-            if self.isClearing {
++            #if targetEnvironment(simulator)
++            let shouldShowClearingOverlay = self.isClearing || self.duckDemoStartedAt != nil
++            #else
++            let shouldShowClearingOverlay = self.isClearing
++            #endif
++
++            if shouldShowClearingOverlay {
+                 let clearingNode: StorageUsageClearProgressOverlayNode
+                 var animateIn = false
+                 if let current = self.clearingNode {
+@@ -2303,6 +2348,7 @@ final class StorageUsageScreenComponent: Component {
+             } else {
+                 if let clearingNode = self.clearingNode {
+                     self.clearingNode = nil
++                    clearingNode.finishSweepGame()
+                     
+                     var delay: Double = 0.0
+                     if let clearingDisplayTimestamp = self.clearingDisplayTimestamp {
+@@ -2891,6 +2937,12 @@ final class StorageUsageScreenComponent: Component {
+             guard let component = self.component, let aggregatedData = self.aggregatedData else {
+                 return
+             }
++            #if targetEnvironment(simulator)
++            if fromCategories, aggregatedData.peerId == nil {
++                self.startDuckDemo()
++                return
++            }
++            #endif
+             let context = component.context
+             let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+             
+@@ -3571,6 +3623,8 @@ private class StorageUsageClearProgressOverlayNode: ASDisplayNode {
+     
+     private let blurredView: BlurredBackgroundView
+     private let animationNode: AnimatedStickerNode
++    private let duckButton = UIButton(type: .custom)
++    private var sweepGame: CacheSweepGameView?
+     private let progressText = ComponentView<Empty>()
+     private let descriptionText = ComponentView<Empty>()
+     private let progressBackgroundNode: ASDisplayNode
+@@ -3602,7 +3656,61 @@ private class StorageUsageClearProgressOverlayNode: ASDisplayNode {
+         self.view.addSubview(self.blurredView)
+         self.addSubnode(self.animationNode)
+         self.addSubnode(self.progressBackgroundNode)
+-        self.addSubnode(self.progressForegroundNode)
++        self.progressBackgroundNode.addSubnode(self.progressForegroundNode)
++        self.duckButton.accessibilityLabel = "Play with the duck"
++        self.duckButton.addTarget(self, action: #selector(self.openSweepGame), for: .touchUpInside)
++        self.view.addSubview(self.duckButton)
++    }
++
++    @objc private func openSweepGame() {
++        guard self.sweepGame == nil, let (size, bottomInset) = self.validLayout else {
++            return
++        }
++
++        let oldProgressY = self.progressBackgroundNode.frame.minY
++        let originalCenter = self.animationNode.position
++        let game = CacheSweepGameView(frame: CGRect(origin: .zero, size: size))
++        self.view.insertSubview(game, aboveSubview: self.blurredView)
++        self.sweepGame = game
++        self.duckButton.isHidden = true
++        self.updateLayout(size: size, bottomInset: bottomInset, transition: .immediate)
++        let center = game.begin(at: originalCenter)
++        let reducedMotion = UIAccessibility.isReduceMotionEnabled
++        let duration: Double = reducedMotion ? 0.16 : 0.38
++
++        if !reducedMotion {
++            let movement = CGPoint(x: 0, y: oldProgressY - self.progressBackgroundNode.frame.minY)
++            let layers = [
++                self.progressBackgroundNode.layer,
++                self.progressText.view?.layer,
++                self.descriptionText.view?.layer
++            ]
++            for layer in layers.compactMap({ $0 }) {
++                layer.animatePosition(from: movement, to: .zero, duration: duration, additive: true)
++            }
++        }
++
++        game.alpha = 0
++        game.isUserInteractionEnabled = false
++        UIView.animate(withDuration: duration, delay: 0, options: [.curveEaseInOut, .beginFromCurrentState], animations: {
++            if !reducedMotion {
++                self.animationNode.view.transform = CGAffineTransform(translationX: center.x - originalCenter.x, y: center.y - originalCenter.y).scaledBy(x: 0.55, y: 0.55)
++            }
++            self.animationNode.alpha = 0
++            game.alpha = 1
++        }, completion: { [weak self, weak game] finished in
++            guard finished, let self, let game, self.sweepGame === game, !self.isFinishing else { return }
++            self.animationNode.visibility = false
++            game.isUserInteractionEnabled = true
++        })
++    }
++
++    private var isFinishing = false
++
++    func finishSweepGame() {
++        self.isFinishing = true
++        self.duckButton.isEnabled = false
++        self.sweepGame?.stop()
+     }
+     
+     deinit {
+@@ -3669,13 +3777,23 @@ private class StorageUsageClearProgressOverlayNode: ASDisplayNode {
+         let displayAnimation = imageSize.height + spacing + textContentHeight <= availableHeight
+         let contentHeight = textContentHeight + (displayAnimation ? imageSize.height + spacing : 0.0)
+         let contentOriginY = floorToScreenPixels(max(topInset, min(size.height * 0.5 - 24.0 - contentHeight * 0.5, size.height - contentBottomInset - contentHeight)))
++        let progressTop = self.sweepGame != nil
++            ? max(0, size.height - contentBottomInset - textContentHeight - 8.0)
++            : contentOriginY + (displayAnimation ? imageSize.height + spacing : 0.0)
+ 
+         let animationFrame = CGRect(origin: CGPoint(x: floorToScreenPixels((size.width - imageSize.width) / 2.0), y: contentOriginY), size: imageSize)
+-        self.animationNode.frame = animationFrame
+-        self.animationNode.updateLayout(size: imageSize)
+-        self.animationNode.alpha = displayAnimation ? 1.0 : 0.0
++        if let sweepGame = self.sweepGame {
++            sweepGame.frame = CGRect(origin: .zero, size: size)
++            sweepGame.update(progressTop: progressTop)
++        } else {
++            self.animationNode.frame = animationFrame
++            self.animationNode.updateLayout(size: imageSize)
++            self.animationNode.alpha = displayAnimation ? 1.0 : 0.0
++            self.duckButton.frame = animationFrame.insetBy(dx: 19, dy: 9)
++            self.duckButton.isHidden = !displayAnimation
++        }
+ 
+-        let progressTextFrame = CGRect(origin: CGPoint(x: floorToScreenPixels((size.width - progressTextSize.width) / 2.0), y: contentOriginY + (displayAnimation ? imageSize.height + spacing : 0.0)), size: progressTextSize)
++        let progressTextFrame = CGRect(origin: CGPoint(x: floorToScreenPixels((size.width - progressTextSize.width) / 2.0), y: progressTop), size: progressTextSize)
+         if let progressTextView = self.progressText.view {
+             if progressTextView.superview == nil {
+                 self.view.addSubview(progressTextView)
+@@ -3685,8 +3803,8 @@ private class StorageUsageClearProgressOverlayNode: ASDisplayNode {
+ 
+         let progressFrame = CGRect(x: inset, y: progressTextFrame.maxY + spacing, width: contentWidth, height: progressHeight)
+         self.progressBackgroundNode.frame = progressFrame
+-        let progressForegroundFrame = CGRect(origin: progressFrame.origin, size: CGSize(width: floorToScreenPixels(progressFrame.width * CGFloat(self.progress)), height: progressHeight))
+-        if !self.progressForegroundNode.frame.origin.x.isZero {
++        let progressForegroundFrame = CGRect(origin: .zero, size: CGSize(width: floorToScreenPixels(progressFrame.width * CGFloat(self.progress)), height: progressHeight))
++        if self.progressForegroundNode.bounds.height > 0 {
+             transition.updateFrame(node: self.progressForegroundNode, frame: progressForegroundFrame, beginWithCurrentState: true)
+         } else {
+             self.progressForegroundNode.frame = progressForegroundFrame
+-- 
+2.54.0 (Apple Git-157)
+
